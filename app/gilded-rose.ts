@@ -10,6 +10,55 @@ export class Item {
   }
 }
 
+interface ItemConfig {
+  updateSellIn: boolean;
+  updateFunction: (item: Item) => void;
+  minQuality: number;
+  maxQuality: number;
+}
+
+interface SpecialItemConfig extends ItemConfig {
+  name: string;
+}
+
+const defaultItemConfig: ItemConfig = {
+  updateSellIn: true,
+  updateFunction: (item: Item) => updateItem(item, "subtract", 1),
+  minQuality: 0,
+  maxQuality: 50,
+};
+
+const specialItemConfigList: SpecialItemConfig[] = [
+  {
+    name: "Aged Brie",
+    updateSellIn: true,
+    updateFunction: (item: Item) => updateItem(item, "add", 1),
+    minQuality: 0,
+    maxQuality: 50,
+  },
+  {
+    name: "Backstage passes to a TAFKAL80ETC concert",
+    updateSellIn: true,
+    updateFunction: (item: Item) => updateConcertItem(item),
+    minQuality: 0,
+    maxQuality: 50,
+  },
+  {
+    name: "Conjured Mana Cake",
+    updateSellIn: true,
+    updateFunction: (item: Item) => updateItem(item, "subtract", 2),
+    minQuality: 0,
+    maxQuality: 50,
+  },
+  {
+    name: "Sulfuras, Hand of Ragnaros",
+    updateSellIn: false,
+    updateFunction: (item: Item) => {},
+    minQuality: 80,
+    maxQuality: 80,
+  },
+];
+
 export class GildedRose {
   items: Array<Item>;
 
@@ -19,36 +68,53 @@ export class GildedRose {
 
   updateQuality() {
     for (const item of this.items) {
-      if (item.name === "Sulfuras, Hand of Ragnaros") continue;
-      item.sellIn -= 1;
-
-      switch (item.name) {
-        case "Aged Brie":
-          if (item.sellIn >= 0) item.quality += 1;
-          else item.quality += 2;
-          break;
-
-        case "Backstage passes to a TAFKAL80ETC concert":
-          if (item.sellIn >= 10) item.quality += 1;
-          else if (item.sellIn >= 5) item.quality += 2;
-          else if (item.sellIn >= 0) item.quality += 3;
-          else item.quality = 0;
-          break;
-
-        case "Conjured Mana Cake":
-          if (item.sellIn >= 0) item.quality -= 2;
-          else item.quality -= 4;
-          break;
-
-        // default case for all normal items
-        default:
-          if (item.sellIn >= 0) item.quality -= 1;
-          else item.quality -= 2;
-          break;
-      }
-      if (item.quality < 0) item.quality = 0;
-      if (item.quality > 50) item.quality = 50;
+      updateQualitySteps(item);
     }
     return this.items;
   }
+}
+
+function updateQualitySteps(item: Item) {
+  const itemConfig = specialItemConfigList.find(config => config.name === item.name) || defaultItemConfig;
+  
+  // Update sellIn
+  updateSellIn(item, itemConfig.updateSellIn);
+  
+  // Update quality
+  itemConfig.updateFunction(item);
+  
+  // Apply quality bounds
+  applyQualityBounds(item, itemConfig.minQuality, itemConfig.maxQuality);
+}
+
+function updateSellIn(item: Item, shouldUpdate: boolean) {
+  if (shouldUpdate) {
+    item.sellIn -= 1;
+  }
+}
+
+function applyQualityBounds(item: Item, minQuality: number, maxQuality: number) {
+  if (item.quality < minQuality) item.quality = minQuality;
+  if (item.quality > maxQuality) item.quality = maxQuality;
+}
+
+function updateItem(
+  item: Item,
+  addSubtract: "add" | "subtract",
+  value: number
+) {
+  if (addSubtract === "add") {
+    if (item.sellIn >= 0) item.quality += value;
+    else item.quality += value * 2;
+  } else {
+    if (item.sellIn >= 0) item.quality -= value;
+    else item.quality -= value * 2;
+  }
+}
+
+function updateConcertItem(item: Item) {
+  if (item.sellIn >= 10) item.quality += 1;
+  else if (item.sellIn >= 5) item.quality += 2;
+  else if (item.sellIn >= 0) item.quality += 3;
+  else item.quality = 0;
 }
