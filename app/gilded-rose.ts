@@ -36,10 +36,11 @@ export class GildedRose {
           break;
 
         case "Conjured Mana Cake":
-          if (item.sellIn >= 0) item.quality -=2;
+          if (item.sellIn >= 0) item.quality -= 2;
           else item.quality -= 4;
           break;
 
+        // default case for all normal items
         default:
           if (item.sellIn >= 0) item.quality -= 1;
           else item.quality -= 2;
